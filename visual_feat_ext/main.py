@@ -51,6 +51,7 @@ def main(argv):
         t1 = time.time()
         im = skimage.io.imread(im_path)
         im = skimage.img_as_ubyte(im_processing.resize_and_pad(im, 320, 320))
+        if im.ndim == 2: im = np.tile(im[:, :, np.newaxis], (1, 1, 3))
         im = im.astype(np.float32)[:, :, ::-1] - mu
 
         vis_feat_val = sess.run(visual_feat, feed_dict={input: np.expand_dims(im, axis=0)})
