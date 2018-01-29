@@ -136,6 +136,7 @@ def test():
         batch = reader.read_batch(is_log=False)
         text = batch['text_batch']
         im = batch['im_batch'].astype(np.float32)
+        im = im[:, :, ::-1] - mu
         mask = batch['mask_batch'].astype(np.float32)
 
         score_val, pred_val, sigm_val = sess.run(
