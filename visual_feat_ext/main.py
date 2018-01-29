@@ -1,8 +1,10 @@
+import time
+import os
 from glob import glob
 
 import numpy as np
 import tensorflow as tf
-import skimage
+import skimage.io
 
 from util import im_processing
 from deeplab_resnet import model as deeplab101
@@ -20,7 +22,7 @@ def main(argv):
     data_prefix = FLAGS.dataset + '_' + FLAGS.setname
     if FLAGS.dataset == 'referit':
         im_dir = '/data/ryli/text_objseg/exp-referit/referit-dataset/images/'
-    elif FLAGS.dataset = 'coco':
+    elif FLAGS.dataset == 'coco':
         im_dir = '/data/ryli/datasets/coco/images/train2014/'
     else:
         print('dataset must be referit or coco')
@@ -37,20 +39,32 @@ def main(argv):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
+    sess.run(tf.global_variables_initializer())
+
+    pretrained_model = '/data/ryli/text_objseg/tensorflow-deeplab-resnet/models/deeplab_resnet_init.ckpt'
+    snapshot_loader = tf.train.Saver()
+    snapshot_loader.restore(sess, pretrained_model)
 
     imgs = glob(im_dir + '*.jpg')
     for i, im_path in enumerate(imgs):
         print('saving visual features %d / %d' % (i + 1, len(imgs)))
+        t1 = time.time()
         im = skimage.io.imread(im_path)
         im = skimage.img_as_ubyte(im_processing.resize_and_pad(im, 320, 320))
         im = im.astype(np.float32)[:, :, ::-1] - mu
 
-        vis_feat_val = sess.run(visual_feat, feed_dict={input: im})
+        vis_feat_val = sess.run(visual_feat, feed_dict={input: np.expand_dims(im, axis=0)})
+        t2 = time.time()
 
-        save_path = data_folder + im_path.split('/')[-1][:-4] + '.npy'
-        np.save(save_path, vis_feat_val)
+        save_path = data_folder + im_path.split('/')[-1][:-4] + '.npz'
+        np.savez_compressed(save_path, vis_feat_val)
+        t3 = time.time()
 
-    print 'visual feature extraction complete'
+        np.load(save_path)
+        t4 = time.time()
+        #print('time spent: extraction=%f, compression=%f, loading=%f' % (t2-t1, t3-t2, t4-t3))
+
+    print('visual feature extraction complete')
 
 if __name__ == '__main__':
     tf.app.run()    # parse command line arguments
