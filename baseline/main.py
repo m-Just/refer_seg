@@ -110,9 +110,9 @@ def main(argv):
         FLAGS.modelname + '_iter_%d.tfmodel')
 
     if FLAGS.dataset in ['unc', 'unc+', 'Gref']:
-        visual_feat_dir = '../data/coco/train_visual_feat/'
+        visual_feat_dir = '../data/coco/visual_feat/'
     elif FLAGS.dataset == 'referit':
-        pass
+        visual_feat_dir = '../data/referit/visual_feat/'
     else:
         raise ValueError('Unknown dataset %s' % dataset)
 

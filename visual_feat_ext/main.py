@@ -18,8 +18,7 @@ def main(argv):
     mu = np.array((104.00698793, 116.66876762, 122.67891434))
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
 
-    data_folder = '../data/' + FLAGS.dataset + '/' + FLAGS.setname + '_visual_feat/'
-    data_prefix = FLAGS.dataset + '_' + FLAGS.setname
+    data_folder = '../data/' + FLAGS.dataset + '/visual_feat/'
     if FLAGS.dataset == 'referit':
         im_dir = '/data/ryli/text_objseg/exp-referit/referit-dataset/images/'
     elif FLAGS.dataset == 'coco':
