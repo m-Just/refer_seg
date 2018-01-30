@@ -30,7 +30,7 @@ tf.app.flags.DEFINE_integer('num_steps', 20, None)
 
 tf.app.flags.DEFINE_boolean('dcrf', False, None)
 
-def train():
+def train(reader, snapshot_file):
     model = Model(
         mode='train',
         vocab_size=vocab_size,
@@ -87,9 +87,9 @@ def train():
 
         cls_loss_avg = avg_decay * cls_loss_avg + (1 - avg_decay) * cls_loss_val
         acc_all, acc_pos, acc_neg = compute_accuracy(score_val, label_coarse_val)
-        acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all_avg
-        acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos_avg
-        acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg_avg
+        acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all
+        acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos
+        acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg
 
         if n_iter % iters_per_log == 0:
             print('iter = %d, loss (cur) = %f, loss (avg) = %f, lr = %f'
@@ -105,7 +105,7 @@ def train():
 
     print('Optimization done.')
 
-def test():
+def test(reader, snapshot_file):
     model = Model(
         mode='test',
         vocab_size=vocab_size,
@@ -206,9 +206,9 @@ def main(argv):
     assert FLAGS.mode in ['train', 'test'], 'invalid mode: %s' % FLAGS.mode
     if FLAGS.mode == 'train':
         if not os.path.isdir(FLAGS.sfolder): os.makedirs(FLAGS.sfolder)
-        train()
+        train(reader, snapshot_file)
     elif FLAGS.mode == 'test':
-        test()
+        test(reader, snapshot_file)
 
 if __name__ == '__main__':
     # Fixed parameters

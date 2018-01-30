@@ -85,6 +85,9 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
         rle = cocomask.frPyObjects(seg, im.shape[0], im.shape[1])
         mask = np.max(cocomask.decode(rle), axis = 2).astype(np.float32)
 
+        if 'train' in setname:
+            mask = im_processing.resize_and_pad(mask, input_H, input_W)
+
         for sentence in ref['sentences']:
             print('saving batch %d' % (n_batch + 1))
             sent = sentence['sent']

@@ -27,10 +27,13 @@ tf.app.flags.DEFINE_integer('batch_size', 1, None)
 tf.app.flags.DEFINE_integer('H', 320, None)
 tf.app.flags.DEFINE_integer('W', 320, None)
 tf.app.flags.DEFINE_integer('num_steps', 20, None)
+tf.app.flags.DEFINE_integer('vf_h', 40, None)
+tf.app.flags.DEFINE_integer('vf_w', 40, None)
+tf.app.flags.DEFINE_integer('vf_dim', 2048, None)
 
 tf.app.flags.DEFINE_boolean('dcrf', False, None)
 
-def train():
+def train(reader, snapshot_file, visual_feat_dir):
     model = Model(
         'train',
         vocab_size,
@@ -59,10 +62,10 @@ def train():
         for n_batch in range(FLAGS.batch_size):
             batch = reader.read_batch(is_log=(n_batch ==0 and n_iter % iters_per_log == 0))
             text = batch['text_batch']
-            im_name = batch['im_name_batch']
+            im_name = str(batch['im_name_batch'])
             mask = np.expand_dims(batch['mask_batch'].astype(np.float32), axis=2)
 
-            visual_feat = np.load(visual_feat_dir + im_name + '.npz')
+            visual_feat = np.load(visual_feat_dir + im_name + '.npz')['arr_0']
 
             text_batch[n_batch, ...] = text
             visual_feat_batch[n_batch, ...] = visual_feat
@@ -79,9 +82,9 @@ def train():
 
         cls_loss_avg = avg_decay * cls_loss_avg + (1 - avg_decay) * cls_loss_val
         acc_all, acc_pos, acc_neg = compute_accuracy(score_val, label_coarse_val)
-        acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all_avg
-        acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos_avg
-        acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg_avg
+        acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all
+        acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos
+        acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg
 
         if n_iter % iters_per_log == 0:
             print('iter = %d, loss (cur) = %f, loss (avg) = %f, lr = %f'
@@ -97,7 +100,7 @@ def train():
 
     print('Optimization done.')
 
-def test():
+def test(reader, snapshot_file, visual_feat_dir):
     model = Model(
         mode='test',
         vocab_size=vocab_size,
@@ -127,10 +130,10 @@ def test():
 
         batch = reader.read_batch(is_log=False)
         text = batch['text_batch']
-        im_name = batch['im_name_batch']
+        im_name = str(batch['im_name_batch'])
         mask = batch['mask_batch'].astype(np.float32)
 
-        visual_feat = np.load(visual_feat_dir + im_name + '.npz')
+        visual_feat = np.load(visual_feat_dir + im_name + '.npz')['arr_0']
 
         score_val, pred_val, sigm_val = sess.run(
             [model.score, model.pred, model.sigm],
@@ -189,9 +192,9 @@ def main(argv):
 
     if FLAGS.mode == 'train':
         if not os.path.isdir(FLAGS.sfolder): os.makedirs(FLAGS.sfolder)
-        train()
+        train(reader, snapshot_file, visual_feat_dir)
     elif FLAGS.mode == 'test':
-        test()
+        test(reader, snapshot_file, visual_feat_dir)
     else:
         raise ValueError('Invalid mode: %s' % FLAGS.mode)
 

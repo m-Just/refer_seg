@@ -54,7 +54,7 @@ class Baseline_model(object):
         # Placeholders
         self.words = tf.placeholder(tf.int32, [self.batch_size, self.num_steps])
         self.visual_feat = tf.placeholder(tf.float32, [self.batch_size, self.vf_h, self.vf_w, self.vf_dim])
-        self.target_fine = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 3])
+        self.target_fine = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 1])
 
         # Build model
         with tf.variable_scope('refer_seg'):

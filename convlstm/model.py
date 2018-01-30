@@ -55,7 +55,7 @@ class ConvLSTM_model(object):
         # Placeholders
         self.words = tf.placeholder(tf.int32, [self.batch_size, self.num_steps])
         self.im = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 3])
-        self.target_fine = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 3])
+        self.target_fine = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 1])
 
         # Obtain visual features from trained CNN
         resmodel = deeplab101.DeepLabResNetModel({'data': self.im}, is_training=(self.mode == 'train'))
