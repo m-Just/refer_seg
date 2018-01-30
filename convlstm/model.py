@@ -9,7 +9,7 @@ from util.processing_tools import *
 from util import im_processing, text_processing, eval_tools
 from util import loss
 
-def ConvLSTM_model(object):
+class ConvLSTM_model(object):
     def __init__(self,
         mode,
         vocab_size,

@@ -21,12 +21,12 @@ tf.app.flags.DEFINE_string('setname', None, None)
 tf.app.flags.DEFINE_string('sfolder', 'ckpts', None)
 tf.app.flags.DEFINE_string('modelname', 'convlstm_p543', None)
 
-tf.app.flags.DEFINE_int('max_iter', 700000, None)
-tf.app.flags.DEFINE_int('snapshot_interval', 100000, None)
-tf.app.flags.DEFINE_int('batch_size', 1, None)
-tf.app.flags.DEFINE_int('H', 320, None)
-tf.app.flags.DEFINE_int('W', 320, None)
-tf.app.flags.DEFINE_int('num_steps', 20, None)
+tf.app.flags.DEFINE_integer('max_iter', 700000, None)
+tf.app.flags.DEFINE_integer('snapshot_interval', 100000, None)
+tf.app.flags.DEFINE_integer('batch_size', 1, None)
+tf.app.flags.DEFINE_integer('H', 320, None)
+tf.app.flags.DEFINE_integer('W', 320, None)
+tf.app.flags.DEFINE_integer('num_steps', 20, None)
 
 tf.app.flags.DEFINE_boolean('dcrf', False, None)
 
@@ -195,10 +195,6 @@ def test():
         print(result_str)
 
 def main(argv):
-    # Fixed parameters
-    mu = np.array((104.00698793, 116.66876762, 122.67891434))
-    vocab_size = 8803 if FLAGS.dataset == 'referit' else 12112
-
     # Variable parameters
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
     data_folder = '../data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
@@ -215,4 +211,8 @@ def main(argv):
         test()
 
 if __name__ == '__main__':
+    # Fixed parameters
+    mu = np.array((104.00698793, 116.66876762, 122.67891434))
+    vocab_size = 8803 if FLAGS.dataset == 'referit' else 12112
+
     tf.app.run()    # parse command line arguments
