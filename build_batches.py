@@ -16,15 +16,15 @@ def build_referit_batches(setname, T, input_H, input_W):
     # data directory
     im_dir = '/data/ryli/text_objseg/exp-referit/referit-dataset/images/'
     mask_dir = '/data/ryli/text_objseg/exp-referit/referit-dataset/mask/'
-    query_file = './data/referit/referit_query_' + setname + '.json'
-    vocab_file = './data/vocabulary_referit.txt'
+    query_file = '/data/ryli/rmi_phrasecut/data/referit/referit_query_' + setname + '.json'
+    vocab_file = '/data/ryli/rmi_phrasecut/data/vocabulary_referit.txt'
 
     # saving directory
-    data_folder = './referit/' + setname + '_batch/'
+    data_folder = './data/referit/' + setname + '_batch/'
     data_prefix = 'referit_' + setname
     if not os.path.isdir(data_folder):
         os.makedirs(data_folder)
-    fp = open('./referit/trainval_list.txt', 'w')
+    fp = open('./data/referit/trainval_list.txt', 'w')
 
     # load annotations
     query_dict = json.load(open(query_file))
@@ -59,7 +59,7 @@ def build_referit_batches(setname, T, input_H, input_W):
 def build_coco_batches(dataset, setname, T, input_H, input_W):
     im_dir = '/data/ryli/datasets/coco/images'
     im_type = 'train2014'
-    vocab_file = './data/vocabulary_Gref.txt'
+    vocab_file = '/data/ryli/rmi_phrasecut/data/vocabulary_Gref.txt'
 
     data_folder = './data/' + dataset + '/' + setname + '_batch/'
     data_prefix = dataset + '_' + setname
@@ -67,18 +67,20 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
         os.makedirs(data_folder)
 
     if dataset == 'Gref':
-        refer = REFER('./external/refer/data', dataset = 'refcocog', splitBy = 'google')
+        refer = REFER('/data/ryli/rmi_phrasecut/external/refer/data', dataset = 'refcocog', splitBy = 'google')
     elif dataset == 'unc':
-        refer = REFER('./external/refer/data', dataset = 'refcoco', splitBy = 'unc')
+        refer = REFER('/data/ryli/rmi_phrasecut/external/refer/data', dataset = 'refcoco', splitBy = 'unc')
     elif dataset == 'unc+':
-        refer = REFER('./external/refer/data', dataset = 'refcoco+', splitBy = 'unc')
+        refer = REFER('/data/ryli/rmi_phrasecut/external/refer/data', dataset = 'refcoco+', splitBy = 'unc')
     else:
         raise ValueError('Unknown dataset %s' % dataset)
     refs = [refer.Refs[ref_id] for ref_id in refer.Refs if refer.Refs[ref_id]['split'] == setname]
     vocab_dict = text_processing.load_vocab_dict_from_file(vocab_file)
 
+    n_batch = 0
     for ref in refs:
         im_name = 'COCO_' + im_type + '_' + str(ref['image_id']).zfill(12)
+        im = skimage.io.imread('%s/%s/%s.jpg' % (im_dir, im_type, im_name))
         seg = refer.Anns[ref['ann_id']]['segmentation']
         rle = cocomask.frPyObjects(seg, im.shape[0], im.shape[1])
         mask = np.max(cocomask.decode(rle), axis = 2).astype(np.float32)
