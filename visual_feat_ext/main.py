@@ -46,8 +46,9 @@ def main(argv):
     snapshot_loader.restore(sess, pretrained_model)
 
     imgs = glob(im_dir + '*.jpg')
+    img_num = len(imgs)
     for i, im_path in enumerate(imgs):
-        print('saving visual features %d / %d' % (i + 1, len(imgs)))
+        print('saving visual features %d / %d' % (i + 1, img_num))
         t1 = time.time()
         im = skimage.io.imread(im_path)
         im = skimage.img_as_ubyte(im_processing.resize_and_pad(im, 320, 320))
