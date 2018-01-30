@@ -97,6 +97,80 @@ def train():
 
     print('Optimization done.')
 
+def test():
+    model = Model(
+        mode='test',
+        vocab_size=vocab_size,
+        H=FLAGS.H,
+        W=FLAGS.W,
+        batch_size=FLAGS.batch_size,
+        num_steps=FLAGS.num_steps)
+
+    score_thresh = 1e-9
+    eval_seg_iou_list = [.5, .6, .7, .8, .9]
+    cum_I = cum_U = cum_I_dcrf = cum_U_dcrf = 0
+    seg_total = 0
+    seg_correct = list()
+    if FLAGS.dcrf: seg_correct_dcrf = list()
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
+    sess.run(tf.global_variables_initializer())
+
+    snapshot_loader = tf.train.Saver()
+    snapshot_loader.restore(sess, snapshot_file)
+
+    for n_iter in range(reader.num_batch):
+        sys.stdout.write('Testing %d/%d\r' % (n_iter + 1, reader.num_batch))
+        sys.stdout.flush()
+
+        batch = reader.read_batch(is_log=False)
+        text = batch['text_batch']
+        im_name = batch['im_name_batch']
+        mask = batch['mask_batch'].astype(np.float32)
+
+        visual_feat = np.load(visual_feat_dir + im_name + '.npz')
+
+        score_val, pred_val, sigm_val = sess.run(
+            [model.score, model.pred, model.sigm],
+            feed_dict={
+                model.words: np.expand_dims(text, axis=0),
+                model.visual_feat: np.expand_dims(visual_feat, axis=0)
+            })
+
+        pred_val = np.squeeze(pred_val)
+        pred_raw = (pred_val >= score_thresh).astype(np.float32)
+        predicts = im_processing.resize_and_crop(pred_raw, mask.shape[0], mask.shape[1])
+
+        I, U = eval_tools.compute_mask_IU(predicts, mask)
+        cum_I += I
+        cum_U += U
+        for n_eval_iou in range(len(eval_seg_iou_list)):
+            seg_correct[n_eval_iou] += (I/U >= eval_seg_iou_list[n_eval_iou])
+
+        if FLAGS.dcrf:
+            sigm_val = np.squeeze(sigm_val)
+            d = densecrf.DenseCRF2D(FLAGS.W, FLAGS.H, 2)
+            U = np.expand_dims(-np.log(sigm_val), axis=0)
+            U_ = np.expand_dims(-np.log(1 - sigm_val), axis=0)
+            unary = np.concatenate((U_, U), axis=0)
+            unary = unary.reshape((2, -1))
+            d.setUnaryEnergy(unary)
+            d.addPairwiseGaussian(sxy=3, compat=3)
+            d.addPairwiseBilateral(sxy=20, srgb=3, rgbim=im, compat=10)
+            Q = d.inference(5)
+            pred_raw_dcrf = np.argmax(Q, axis=0).reshape((FLAGS.H, FLAGS.W)).astype(np.float32)
+            predicts_dcrf = im_processing.resize_and_crop(pred_raw_dcrf, mask.shape[0], mask.shape[1])
+
+            I, U = eval_tools.compute_mask_IU(predicts, mask)
+            cum_I_dcrf += I
+            cum_U_dcrf += U
+            for n_eval_iou in range(len(eval_seg_iou_list)):
+                seg_correct_dcrf[n_eval_iou] += (I/U >= eval_seg_iou_list[n_eval_iou])
+
+        seg_total += 1
+
 def main(argv):
     # Fixed parameters
     vocab_size = 8803 if FLAGS.dataset == 'referit' else 12112
