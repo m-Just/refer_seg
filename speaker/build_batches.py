@@ -50,7 +50,6 @@ def build_coco_batches(dataset, setname,input_H, input_W):
     else:
         raise ValueError('Unknown dataset %s' % dataset)
     refs = [refer.Refs[ref_id] for ref_id in refer.Refs if refer.Refs[ref_id]['split'] == setname]
-    vocab_dict = text_processing.load_vocab_dict_from_file(vocab_file)
 
     sent_data = []
     encoder = setup_encoder()
@@ -85,8 +84,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', type = str, default = 'referit') # 'unc', 'unc+', 'Gref'
     parser.add_argument('-t', type = str, default = 'trainval') # 'test', val', 'testA', 'testB'
+    parser.add_argument('-g', type = str, default = '0') 
 
     args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.g
+
     input_H = 320
     input_W = 320
     if args.d == 'referit':
