@@ -1,3 +1,4 @@
+import re
 import sys
 sys.path.append('/data/ryli/rmi_phrasecut/external/coco/PythonAPI')
 import os
@@ -89,7 +90,7 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
             mask = im_processing.resize_and_pad(mask, input_H, input_W)
 
         for sentence in ref['sentences']:
-            print('saving batch %d' % (n_batch + 1))
+           print('saving batch %d' % (n_batch + 1))
             sent = sentence['sent']
             text = text_processing.preprocess_sentence(sent, vocab_dict, T)
 
@@ -99,6 +100,16 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
                 mask_batch = (mask > 0),
                 sent_batch = [sent])
             n_batch += 1
+
+    #phrase_file = open('unc_phrase.txt', 'w')
+    #for ref in refs:
+    #    for sentence in ref['sentences']:
+    #        if re.search(r'[.,!?"]', sent):
+    #            print(sent)
+    #        phrase_file.write(re.sub(r'[.,!?"]', r' \1', sent) + '\n')
+    
+    #phrase_file.flush()
+    #phrase_file.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
