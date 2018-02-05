@@ -136,7 +136,7 @@ class ConvLSTM_model(object):
         self.score = self._conv('score', convlstm_outputs[:, -1], 3, self.convlstm_dim, 1, [1, 1, 1, 1])
         self.pred = tf.image.resize_bilinear(self.score, [self.H, self.W])
         if self.mode == 'test':
-            self.sigm = tf.sigmoid(self.up)
+            self.sigm = tf.sigmoid(self.pred)
 
     def train_op(self):
         # Collect variables for training

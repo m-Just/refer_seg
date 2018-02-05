@@ -1,8 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from util.cell import ConvLSTMCell
-
 from util import data_reader
 from util.processing_tools import *
 from util import im_processing, text_processing, eval_tools
@@ -108,7 +106,7 @@ class Baseline_model(object):
         self.score = self._conv('conv_cls', fusion, 3, self.mlp_dim, 1, [1, 1, 1, 1])
         self.pred = tf.image.resize_bilinear(self.score, [self.H, self.W])
         if self.mode == 'test':
-            self.sigm = tf.sigmoid(self.up)
+            self.sigm = tf.sigmoid(self.pred)
 
     def train_op(self):
         # Collect variables for training
