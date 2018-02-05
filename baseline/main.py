@@ -177,7 +177,7 @@ def test(reader, snapshot_file, visual_feat_dir):
 def main(argv):
     # Variable parameters
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
-    data_folder = '../data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
+    data_folder = './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
     data_prefix = FLAGS.dataset + '_' + FLAGS.setname
     reader = data_reader.DataReader(data_folder, data_prefix)
     snapshot_file = os.path.join(FLAGS.sfolder, FLAGS.dataset + '_' +
