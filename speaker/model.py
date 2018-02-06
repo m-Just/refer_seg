@@ -58,7 +58,7 @@ class Skip_thoughts_speaker_model(object):
         fusion = tf.nn.relu(fusion)
 
         self.score = self._conv('conv_cls', fusion, 3, self.fusion_dim, self.enc_dim, [1, 1, 1, 1])
-        self.dist = tf.sqrt(tf.squared_difference(self.score, self.encoding))
+        self.dist = tf.sqrt(tf.reduce_sum(tf.squared_difference(self.score, self.encoding), axis=-1))
 
     def train_op(self):
         # Collect variables for training
