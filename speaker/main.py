@@ -1,7 +1,11 @@
+import os
+
 import numpy as np
 import tensorflow as tf
 
 from model import Skip_thoughts_speaker_model as Model
+
+from util import data_reader
 
 # Command line arguments
 FLAGS = tf.app.flags.FLAGS

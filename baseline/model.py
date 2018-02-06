@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from util import loss
+from util.processing_tools import *
 
 class Baseline_model(object):
     def __init__(self,

@@ -4,9 +4,7 @@ import tensorflow as tf
 from deeplab_resnet import model as deeplab101
 from util.cell import ConvLSTMCell
 
-from util import data_reader
 from util.processing_tools import *
-from util import im_processing, text_processing, eval_tools
 from util import loss
 
 class ConvLSTM_model(object):

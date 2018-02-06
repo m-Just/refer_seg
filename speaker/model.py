@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from util import loss
+from util.processing_tools import *
 
 class Skip_thoughts_speaker_model(object):
     def __init__(self,
@@ -74,9 +75,9 @@ class Skip_thoughts_speaker_model(object):
 
         self.target_coarse = tf.image.resize_bilinear(self.target_fine, [self.vf_h, self.vf_w])
         self.masked_score = tf.gather_nd(self.score, tf.where(self.target_coarse > 0.5))
-        self.mean_score = tf.reduce_mean(self.masked_score, axis=1)
+        self.mean_score = tf.reduce_mean(self.masked_score)
 
-        self.spk_loss = tf.reduce_mean(tf.squared_difference(self.mean_score, self.encoding))
+        self.spk_loss = tf.reduce_sum(tf.squared_difference(self.mean_score, self.encoding))
         self.reg_loss = loss.l2_regularization_loss(rvars, self.weight_decay)
         self.sum_loss = self.spk_loss + self.reg_loss
 
