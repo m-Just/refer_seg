@@ -1,9 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from util import data_reader
-from util.processing_tools import *
-from util import im_processing, text_processing, eval_tools
 from util import loss
 
 class Baseline_model(object):

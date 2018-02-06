@@ -1,14 +1,25 @@
 import numpy as np
 import tensorflow as tf
 
+from util import loss
+
 class Skip_thoughts_speaker_model(object):
     def __init__(self,
         mode,
         batch_size=1,
-        H=320, W=320,
-        vf_h=40, vf_w=40, vf_dim=2048, v_emb_dim=1024,
+        H=320,
+        W=320,
+        vf_h=40,
+        vf_w=40,
+        vf_dim=2048,
+        v_emb_dim=1024,
         fusion_dim=2048,
-        enc_dim=2400):
+        enc_dim=2400,
+        start_lr = 2.5e-4,
+        end_lr = 1e-5,
+        lr_decay_step=700000,
+        lr_decay_rate = 1.0,
+        weight_decay = 5e-4):
         self.mode = mode
         self.batch_size = batch_size
         self.H = H
@@ -18,6 +29,12 @@ class Skip_thoughts_speaker_model(object):
         self.vf_dim = vf_dim
         self.v_emb_dim = v_emb_dim
         self.fusion_dim = fusion_dim
+        self.enc_dim = enc_dim
+        self.start_lr = start_lr
+        self.end_lr = end_lr
+        self.lr_decay_step = lr_decay_step
+        self.lr_decay_rate = lr_decay_rate
+        self.weight_decay = weight_decay
 
         with tf.variable_scope('refer_seg'):
             self.build_graph()
@@ -57,12 +74,11 @@ class Skip_thoughts_speaker_model(object):
 
         self.target_coarse = tf.image.resize_bilinear(self.target_fine, [self.vf_h, self.vf_w])
         self.masked_score = tf.gather_nd(self.score, tf.where(self.target_coarse > 0.5))
-        self.softmax_mean_score = tf.nn.softmax(tf.reduce_mean(self.masked_score, axis=1))
-        self.softmax_encoding = tf.nn.softmax(self.encoding)
+        self.mean_score = tf.reduce_mean(self.masked_score, axis=1)
 
-        self.cls_loss = tf.softmax_cross_entropy_with_logits(self.softmax_encoding, self.softmax_mean_score)
+        self.spk_loss = tf.reduce_mean(tf.squared_difference(self.mean_score, self.encoding))
         self.reg_loss = loss.l2_regularization_loss(rvars, self.weight_decay)
-        self.sum_loss = self.cls_loss + self.reg_loss
+        self.sum_loss = self.spk_loss + self.reg_loss
 
         # Define learning rate
         self.global_step = tf.Variable(0, trainable=False)

@@ -19,7 +19,7 @@ tf.app.flags.DEFINE_string('mode', None, None)
 tf.app.flags.DEFINE_string('dataset', None, None)
 tf.app.flags.DEFINE_string('setname', None, None)
 tf.app.flags.DEFINE_string('sfolder', 'ckpts', None)
-tf.app.flags.DEFINE_string('modelname', 'convlstm_p543', None)
+tf.app.flags.DEFINE_string('modelname', 'baseline', None)
 
 tf.app.flags.DEFINE_integer('max_iter', 700000, None)
 tf.app.flags.DEFINE_integer('snapshot_interval', 100000, None)
