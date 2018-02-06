@@ -76,7 +76,7 @@ def train(reader, snapshot_file, visual_feat_dir):
             })
 
         spk_loss_avg = avg_decay * spk_loss_avg + (1 - avg_decay) * spk_loss_val
-        acc_all, acc_pos, acc_neg = compute_accuracy(dist_val < 0.1, label_coarse_val)
+        acc_all, acc_pos, acc_neg = compute_accuracy(dist_thresh - dist_val, label_coarse_val)
         acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all
         acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos
         acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg
