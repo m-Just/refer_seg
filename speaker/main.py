@@ -27,7 +27,6 @@ tf.app.flags.DEFINE_boolean('dcrf', False, None)
 def train(reader, snapshot_file, visual_feat_dir):
     model = Model(
         'train',
-        vocab_size,
         H=FLAGS.H,
         W=FLAGS.W,
         batch_size=FLAGS.batch_size,
@@ -81,3 +80,31 @@ def train(reader, snapshot_file, visual_feat_dir):
             print('Snapshot saved to' + snapshot_file % (n_iter + 1))
 
     print('Optimization done.')
+
+def main(argv):
+    # Variable parameters
+    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
+    data_folder = './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
+    data_prefix = FLAGS.dataset + '_' + FLAGS.setname
+    reader = data_reader.DataReader(data_folder, data_prefix)
+    snapshot_file = os.path.join(FLAGS.sfolder, FLAGS.dataset + '_' +
+        FLAGS.modelname + '_iter_%d.tfmodel')
+
+    if FLAGS.dataset in ['unc', 'unc+', 'Gref']:
+        visual_feat_dir = '../data/coco/visual_feat/'
+    elif FLAGS.dataset == 'referit':
+        visual_feat_dir = '../data/referit/visual_feat/'
+    else:
+        raise ValueError('Unknown dataset %s' % dataset)
+
+    if FLAGS.mode == 'train':
+        if not os.path.isdir(FLAGS.sfolder): os.makedirs(FLAGS.sfolder)
+        train(reader, snapshot_file, visual_feat_dir)
+    elif FLAGS.mode == 'test':
+        test(reader, snapshot_file, visual_feat_dir)
+    else:
+        raise ValueError('Invalid mode: %s' % FLAGS.mode)
+
+if __name__ == '__main__':
+    # Fixed parameters
+    tf.app.run()    # parse command line arguments
