@@ -7,20 +7,21 @@ from util.processing_tools import *
 class Skip_thoughts_speaker_model(object):
     def __init__(self,
         mode,
-        batch_size=1,
-        H=320,
-        W=320,
-        vf_h=40,
-        vf_w=40,
-        vf_dim=2048,
-        v_emb_dim=1024,
-        fusion_dim=2048,
-        enc_dim=2400,
+        batch_size = 1,
+        H = 320,
+        W = 320,
+        vf_h = 40,
+        vf_w = 40,
+        vf_dim = 2048,
+        v_emb_dim = 1024,
+        fusion_dim = 2048,
+        enc_dim = 2400,
         start_lr = 2.5e-4,
         end_lr = 1e-5,
-        lr_decay_step=700000,
+        lr_decay_step = 700000,
         lr_decay_rate = 1.0,
         weight_decay = 5e-4):
+        
         self.mode = mode
         self.batch_size = batch_size
         self.H = H
@@ -57,7 +58,7 @@ class Skip_thoughts_speaker_model(object):
             self.fusion_dim, [1, 1, 1, 1])
         fusion = tf.nn.relu(fusion)
 
-        self.score = self._conv('conv_cls', fusion, 3, self.fusion_dim, self.enc_dim, [1, 1, 1, 1])
+        self.score = self._conv('conv_cls', fusion, 1, self.fusion_dim, self.enc_dim, [1, 1, 1, 1])
         self.dist = tf.sqrt(tf.reduce_sum(tf.squared_difference(self.score, self.encoding), axis=-1))
 
     def train_op(self):
@@ -74,8 +75,10 @@ class Skip_thoughts_speaker_model(object):
         print('Done.')
 
         self.target_coarse = tf.image.resize_bilinear(self.target_fine, [self.vf_h, self.vf_w])
-        self.masked_score = tf.gather_nd(self.score, tf.where(self.target_coarse > 0.5))
-        self.mean_score = tf.reduce_mean(self.masked_score)
+        self.mask_indices = tf.slice(tf.where(self.target_coarse > 0.5), [0, 0], [-1, 3])
+        #self.masked_score = tf.gather(self.score, self.mask_indices)
+        self.masked_score = tf.gather_nd(self.score, self.mask_indices)
+        self.mean_score = tf.reduce_mean(self.masked_score, axis=(1,2))
 
         self.spk_loss = tf.reduce_sum(tf.squared_difference(self.mean_score, self.encoding))
         self.reg_loss = loss.l2_regularization_loss(rvars, self.weight_decay)

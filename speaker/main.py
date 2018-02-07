@@ -26,6 +26,7 @@ tf.app.flags.DEFINE_integer('vf_h', 40, None)
 tf.app.flags.DEFINE_integer('vf_w', 40, None)
 tf.app.flags.DEFINE_integer('vf_dim', 2048, None)
 tf.app.flags.DEFINE_integer('enc_dim', 2400, None)
+tf.app.flags.DEFINE_integer('slr', 2.5e-4, None)
 
 tf.app.flags.DEFINE_boolean('dcrf', False, None)
 
@@ -35,6 +36,7 @@ def train(reader, snapshot_file, visual_feat_dir):
         H=FLAGS.H,
         W=FLAGS.W,
         batch_size=FLAGS.batch_size,
+        start_lr=FLAGS.slr,
         lr_decay_step=FLAGS.max_iter)
 
     config = tf.ConfigProto()
@@ -51,7 +53,7 @@ def train(reader, snapshot_file, visual_feat_dir):
     acc_all_avg = acc_pos_avg = acc_neg_avg = spk_loss_avg = 0.0
     avg_decay = 0.99
 
-    dist_thresh = 0.1
+    dist_thresh = 0.5
     iters_per_log = 100
     for n_iter in range(FLAGS.max_iter):
         for n_batch in range(FLAGS.batch_size):
@@ -66,9 +68,9 @@ def train(reader, snapshot_file, visual_feat_dir):
             mask_batch[n_batch, ...] = mask
             encoding_batch[n_batch, ...] = encoding
 
-        _, spk_loss_val, lr_val, score_val, dist_val, label_coarse_val = sess.run(
+        _, spk_loss_val, lr_val, score_val, dist_val, label_coarse_val, masked_score_val, mean_score_val, mask_indices = sess.run(
             [model.train_step, model.spk_loss, model.learning_rate,
-             model.score, model.dist, model.target_coarse],
+             model.score, model.dist, model.target_coarse, model.masked_score, model.mean_score, model.mask_indices],
             feed_dict={
                 model.visual_feat: visual_feat_batch,
                 model.target_fine: mask_batch,
@@ -76,7 +78,7 @@ def train(reader, snapshot_file, visual_feat_dir):
             })
 
         spk_loss_avg = avg_decay * spk_loss_avg + (1 - avg_decay) * spk_loss_val
-        acc_all, acc_pos, acc_neg = compute_accuracy(dist_thresh - dist_val, label_coarse_val)
+        acc_all, acc_pos, acc_neg = compute_accuracy(np.expand_dims(dist_thresh - dist_val, axis=3), label_coarse_val)
         acc_all_avg = avg_decay * acc_all_avg + (1 - avg_decay) * acc_all
         acc_pos_avg = avg_decay * acc_pos_avg + (1 - avg_decay) * acc_pos
         acc_neg_avg = avg_decay * acc_neg_avg + (1 - avg_decay) * acc_neg
@@ -88,6 +90,10 @@ def train(reader, snapshot_file, visual_feat_dir):
                 % (n_iter, acc_all, acc_pos, acc_neg))
             print('iter = %d, accuracy (avg) = %f (all), %f (pos), %f (neg)'
                 % (n_iter, acc_all_avg, acc_pos_avg, acc_neg_avg))
+            print(masked_score_val.shape, mean_score_val.shape)
+            print(mask_indices)
+            print(mask_indices.shape)
+            print(np.min(dist_val), np.max(dist_val))
 
         if (n_iter + 1) % FLAGS.snapshot_interval == 0 or (n_iter + 1) >= FLAGS.max_iter:
             snapshot_saver.save(sess, snapshot_file % (n_iter + 1))
