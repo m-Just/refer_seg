@@ -12,13 +12,17 @@ from deeplab_resnet import model as deeplab101
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('gpu', None, None)
 tf.app.flags.DEFINE_string('dataset', None, None)
-tf.app.flags.DEFINE_string('setname', None, None)
+
+tf.app.flags.DEFINE_integer('H', 320, None)
+tf.app.flags.DEFINE_integer('W', 320, None)
+
+tf.app.flags.DEFINE_boolean('compress', False, None)
 
 def main(argv):
     mu = np.array((104.00698793, 116.66876762, 122.67891434))
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
 
-    data_folder = '../data/' + FLAGS.dataset + '/visual_feat/'
+    data_folder = '../data/' + FLAGS.dataset + '/visual_feat_%dx%d/' % (FLAGS.H, FLAGS.W)
     if FLAGS.dataset == 'referit':
         im_dir = '/data/ryli/text_objseg/exp-referit/referit-dataset/images/'
     elif FLAGS.dataset == 'coco':
@@ -30,7 +34,7 @@ def main(argv):
     if not os.path.isdir(data_folder):
         os.makedirs(data_folder)
 
-    input = tf.placeholder(tf.float32, [1, 320, 320, 3])
+    input = tf.placeholder(tf.float32, [1, FLAGS.H, FLAGS.W, 3])
     resmodel = deeplab101.DeepLabResNetModel({'data': input}, is_training=False)
 
     visual_feat = resmodel.layers['res5c_relu']
@@ -50,7 +54,7 @@ def main(argv):
         print('saving visual features %d / %d' % (i + 1, img_num))
         t1 = time.time()
         im = skimage.io.imread(im_path)
-        im = skimage.img_as_ubyte(im_processing.resize_and_pad(im, 320, 320))
+        im = skimage.img_as_ubyte(im_processing.resize_and_pad(im, FLAGS.H, FLAGS.W))
         if im.ndim == 2: im = np.tile(im[:, :, np.newaxis], (1, 1, 3))
         im = im.astype(np.float32)[:, :, ::-1] - mu
 
@@ -58,12 +62,15 @@ def main(argv):
         t2 = time.time()
 
         save_path = data_folder + im_path.split('/')[-1][:-4] + '.npz'
-        np.savez_compressed(save_path, vis_feat_val)
+        if FLAGS.compress:
+            np.savez_compressed(save_path, vis_feat_val)
+        else:
+            np.savez(save_path, vis_feat_val)
         t3 = time.time()
 
         np.load(save_path)
         t4 = time.time()
-        #print('time spent: extraction=%f, compression=%f, loading=%f' % (t2-t1, t3-t2, t4-t3))
+        print('time spent: extraction=%f, saving=%f, loading=%f' % (t2-t1, t3-t2, t4-t3))
 
     print('visual feature extraction complete')
 

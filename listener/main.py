@@ -19,7 +19,8 @@ tf.app.flags.DEFINE_string('mode', None, None)
 tf.app.flags.DEFINE_string('dataset', None, None)
 tf.app.flags.DEFINE_string('setname', None, None)
 tf.app.flags.DEFINE_string('sfolder', 'ckpts', None)
-tf.app.flags.DEFINE_string('modelname', 'baseline', None)
+tf.app.flags.DEFINE_string('modelname', 'listener', None)
+tf.app.flags.DEFINE_string('external_data', None, None)
 
 tf.app.flags.DEFINE_integer('max_iter', 700000, None)
 tf.app.flags.DEFINE_integer('snapshot_interval', 100000, None)
@@ -180,7 +181,8 @@ def test(reader, snapshot_file, visual_feat_dir):
 def main(argv):
     # Variable parameters
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
-    data_folder = './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
+    data_folder = FLAGS.external_data if FLAGS.external_data \
+        else './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
     data_prefix = FLAGS.dataset + '_' + FLAGS.setname
     reader = data_reader.DataReader(data_folder, data_prefix)
     snapshot_file = os.path.join(FLAGS.sfolder, FLAGS.dataset + '_' +

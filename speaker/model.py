@@ -77,8 +77,18 @@ class Skip_thoughts_speaker_model(object):
         self.target_coarse = tf.image.resize_bilinear(self.target_fine, [self.vf_h, self.vf_w])
         self.mask_indices = tf.slice(tf.where(self.target_coarse > 0.5), [0, 0], [-1, 3])
         #self.masked_score = tf.gather(self.score, self.mask_indices)
-        self.masked_score = tf.gather_nd(self.score, self.mask_indices)
-        self.mean_score = tf.reduce_mean(self.masked_score, axis=(1,2))
+        gathered_score = []
+        for b in range(self.batch_size):
+            mask_indices = tf.where(tf.slice(self.target_coarse, [b, 0, 0, 0], [1, -1, -1, -1]) > 0.5)
+            mask_indices = tf.slice(mask_indices, [0, 0], [-1, 3])
+            print(mask_indices.get_shape().as_list())
+            masked_score = tf.gather_nd(tf.slice(self.score, [b, 0, 0, 0], [1, -1, -1, -1]), mask_indices)
+            print(masked_score.get_shape().as_list())
+            gathered_score.append(masked_score)
+        self.gathered_score = tf.stack(gathered_score)
+        print(self.gathered_score.get_shape().as_list())
+        #self.masked_score = tf.gather_nd(self.score, self.mask_indices)
+        self.mean_score = tf.reduce_mean(self.gathered_score, axis=1)
 
         self.spk_loss = tf.reduce_sum(tf.squared_difference(self.mean_score, self.encoding))
         self.reg_loss = loss.l2_regularization_loss(rvars, self.weight_decay)

@@ -107,12 +107,13 @@ class Listener_model(object):
             self.sigm = tf.sigmoid(self.pred)
 
         # Listener component
-        visual_feat_flat = tf.layers.flatten(visual_feat)
+        visual_feat_flat = tf.contrib.layers.flatten(visual_feat)
         visual_mlp0 = tf.contrib.layers.fully_connected(visual_feat_flat, 1000, activation_fn=tf.nn.relu)
         visual_mlp1 = tf.contrib.layers.fully_connected(visual_mlp0, 500, activation_fn=None)
         self.visual_embed = tf.nn.l2_normalize(visual_mlp1, dim=1)
 
-        lang_mlp0 = tf.contrib.layers.fully_connected(rnn_output, 1000, activation_fn=tf.nn.relu)
+        lang_feat_flat = tf.reshape(rnn_output, [self.batch_size, self.rnn_size])
+        lang_mlp0 = tf.contrib.layers.fully_connected(lang_feat_flat, 1000, activation_fn=tf.nn.relu)
         lang_mlp1 = tf.contrib.layers.fully_connected(lang_mlp0, 500, activation_fn=None)
         self.lang_embed = tf.nn.l2_normalize(lang_mlp1, dim=1)
 
@@ -134,7 +135,7 @@ class Listener_model(object):
         self.cls_loss = loss.weighed_logistic_loss(self.pred, self.target_fine, 1, 1)
         self.reg_loss = loss.l2_regularization_loss(rvars, self.weight_decay)
         self.cosine_similarity = tf.reduce_sum(tf.multiply(self.visual_embed, self.lang_embed), axis=1)
-        self.emb_loss = tf.maximum(0, tf.constant(1.0) - self.cosine_similarity)
+        self.emb_loss = tf.maximum(0.0, tf.constant(1.0) - self.cosine_similarity)
         self.sum_loss = self.cls_loss + self.reg_loss + self.emb_loss
 
         # Define learning rate

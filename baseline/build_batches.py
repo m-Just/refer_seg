@@ -90,7 +90,7 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
             mask = im_processing.resize_and_pad(mask, input_H, input_W)
 
         for sentence in ref['sentences']:
-           print('saving batch %d' % (n_batch + 1))
+            print('saving batch %d' % (n_batch + 1))
             sent = sentence['sent']
             text = text_processing.preprocess_sentence(sent, vocab_dict, T)
 
