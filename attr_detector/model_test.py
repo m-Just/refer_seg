@@ -134,5 +134,5 @@ class Detector(object):
 
     def weighted_cross_entropy_with_logits(labels, logits, freq):
         pos_weight = 1 + (1 / freq - 2) * labels
-        return (1 - labels) * logits + tf.reduce_max(-logits, 0)) + \
-            pos_weight * (tf.log(1 + tf.exp(-tf.abs(logits)))
+        return (1 - labels) * logits  + pos_weight * \
+            (tf.log(1 + tf.exp(-tf.abs(logits))) + tf.reduce_max(-logits, 0))
