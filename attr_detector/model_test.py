@@ -22,7 +22,7 @@ class Detector(object):
 
         self.init_lr = init_lr
         self.weight_decay = weight_decay
-        
+
         # placeholders
         self.im = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, 3])
         self.bbox = tf.placeholder(tf.float32, [self.batch_size, 4])
@@ -49,7 +49,7 @@ class Detector(object):
         net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
         self.end_points['block3'] = net
         net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool3')
-        
+
         net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
         self.end_points['block4'] = net
         net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool4')
@@ -62,7 +62,7 @@ class Detector(object):
         net = slim.conv2d(net, 1024, [3, 3], scope='conv6')
         self.end_points['block6'] = net
         net = tf.layers.dropout(net, rate=0.5, training=(self.mode == 'train'))
-        
+
         #TODO: add bounding box size and shape as additional feature
         net = slim.conv2d(net, 1024, [1, 1], scope='conv7')
         self.end_points['block7'] = net
@@ -97,7 +97,7 @@ class Detector(object):
             true_num = tf.reduce_sum(self.attr, axis=-1)[i]
             score, indices = tf.nn.top_k(self.bbox_cls_pred[i], k=tf.cast(true_num, tf.int32))
             top_tp = tf.reduce_sum(tf.gather(self.attr[i], indices))
-            
+
             positive = tf.where(self.bbox_cls_pred[i] > 0.0, tf.ones([self.attr_num]), tf.zeros([self.attr_num]))
             pos_num = tf.reduce_sum(positive)
             tp = tf.reduce_sum(positive * self.attr[i])
@@ -111,7 +111,8 @@ class Detector(object):
         self.top_recall = top_recall / tf.cast(self.batch_size, tf.float32)
 
         #self.cls_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.attr, logits=self.bbox_cls_pred)
-        self.cls_loss = tf.nn.weighted_cross_entropy_with_logits(self.attr, self.bbox_cls_pred, 10.0)
+        self.cls_loss = self.weighted_cross_entropy_with_logits(self.attr,
+            self.bbox_cls_pred, self.attr_freq / 1.2)
         self.cls_loss *= 0.1 * tf.reduce_max(self.attr_freq) / self.attr_freq
         self.cls_loss = tf.reduce_mean(tf.reduce_sum(self.cls_loss, axis=1))
 
@@ -130,3 +131,8 @@ class Detector(object):
 
         self.global_step = tf.Variable(0, trainable=False)
         self.train_step = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+
+    def weighted_cross_entropy_with_logits(labels, logits, freq):
+        pos_weight = 1 + (1 / freq - 2) * labels
+        return (1 - labels) * logits + tf.reduce_max(-logits, 0)) + \
+            pos_weight * (tf.log(1 + tf.exp(-tf.abs(logits)))
