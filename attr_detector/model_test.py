@@ -132,7 +132,8 @@ class Detector(object):
         self.global_step = tf.Variable(0, trainable=False)
         self.train_step = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
 
-    def weighted_cross_entropy_with_logits(labels, logits, freq):
-        pos_weight = 1 + (1 / freq - 2) * labels
-        return (1 - labels) * logits  + pos_weight * \
-            (tf.log(1 + tf.exp(-tf.abs(logits))) + tf.reduce_max(-logits, 0))
+    def weighted_cross_entropy_with_logits(self, labels, logits, freq):
+        pos_weight = tf.maximum(1, 1 + (1 / freq - 2) * labels)
+        neg_weight = tf.maximum(1, 1 + (freq / (1 - freq) - 1) * labels)
+        return neg_weight * (1 - labels) * logits  + pos_weight * \
+            (tf.log1p(tf.exp(-tf.abs(logits))) + tf.nn.relu(-logits))
