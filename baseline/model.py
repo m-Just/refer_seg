@@ -61,6 +61,7 @@ class Baseline_model(object):
         # Obtain visual feature
         visual_feat = self._conv('mlp0', self.visual_feat, 1, self.vf_dim,
             self.v_emb_dim, [1, 1, 1, 1])
+        visual_feat = tf.nn.l2_normalize(visual_feat, 3)
 
         # word embedding
         embed_mat = tf.get_variable('embedding', [self.vocab_size, self.w_emb_dim],

@@ -1,6 +1,7 @@
 from __future__ import division
 
 import os
+import sys
 import numpy as np
 import tensorflow as tf
 import skimage
@@ -39,6 +40,8 @@ def train(reader, snapshot_file, visual_feat_dir):
         vocab_size,
         H=FLAGS.H,
         W=FLAGS.W,
+        vf_h=FLAGS.vf_h,
+        vf_w=FLAGS.vf_w,
         batch_size=FLAGS.batch_size,
         num_steps=FLAGS.num_steps,
         lr_decay_step=FLAGS.max_iter)
@@ -113,8 +116,8 @@ def test(reader, snapshot_file, visual_feat_dir):
     eval_seg_iou_list = [.5, .6, .7, .8, .9]
     cum_I = cum_U = cum_I_dcrf = cum_U_dcrf = 0
     seg_total = 0
-    seg_correct = list()
-    if FLAGS.dcrf: seg_correct_dcrf = list()
+    seg_correct = [0 for _ in range(len(eval_seg_iou_list))]
+    if FLAGS.dcrf: seg_correct_dcrf = [0 for _ in range(len(eval_seg_iou_list))]
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -122,7 +125,7 @@ def test(reader, snapshot_file, visual_feat_dir):
     sess.run(tf.global_variables_initializer())
 
     snapshot_loader = tf.train.Saver()
-    snapshot_loader.restore(sess, snapshot_file)
+    snapshot_loader.restore(sess, snapshot_file % (FLAGS.max_iter))
 
     for n_iter in range(reader.num_batch):
         sys.stdout.write('Testing %d/%d\r' % (n_iter + 1, reader.num_batch))
@@ -139,7 +142,7 @@ def test(reader, snapshot_file, visual_feat_dir):
             [model.score, model.pred, model.sigm],
             feed_dict={
                 model.words: np.expand_dims(text, axis=0),
-                model.visual_feat: np.expand_dims(visual_feat, axis=0)
+                model.visual_feat: visual_feat
             })
 
         pred_val = np.squeeze(pred_val)
@@ -174,10 +177,19 @@ def test(reader, snapshot_file, visual_feat_dir):
 
         seg_total += 1
 
+    msg = 'cumulative IoU = %f' % (cum_I/cum_U)
+    if FLAGS.dcrf:
+        msg += '\tcumulative IoU (dcrf) = %f' % (cum_I_dcrf/cum_U_dcrf)
+    print(msg)
+
+
 def main(argv):
     # Variable parameters
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
-    data_folder = './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
+    if FLAGS.vf_h == 64 and FLAGS.vf_w == 64:
+        data_folder = '../quadsplit/data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
+    else:
+        data_folder = './data/' + FLAGS.dataset + '/' + FLAGS.setname + '_batch'
     data_prefix = FLAGS.dataset + '_' + FLAGS.setname
     reader = data_reader.DataReader(data_folder, data_prefix)
     snapshot_file = os.path.join(FLAGS.sfolder, FLAGS.dataset + '_' +
@@ -189,6 +201,8 @@ def main(argv):
         visual_feat_dir = '../data/referit/visual_feat/'
     else:
         raise ValueError('Unknown dataset %s' % dataset)
+    if FLAGS.vf_h == 64 and FLAGS.vf_w == 64:
+        visual_feat_dir = visual_feat_dir[:-1] + '_512x512/'
 
     if FLAGS.mode == 'train':
         if not os.path.isdir(FLAGS.sfolder): os.makedirs(FLAGS.sfolder)
