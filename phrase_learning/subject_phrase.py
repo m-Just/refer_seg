@@ -74,22 +74,22 @@ def main():
     avg_accuracy = 0
     for ref_id in loader.Refs:
         ref = loader.Refs[ref_id]
-        category_id = loader.Anns[ref['ann_id']]['category_id']
+        class_label = loader.Anns[ref['ann_id']]['category_id'] - 1
         for sent_id in ref['sent_ids']:
             sent = loader.sentences[sent_id]
             if len(sent['tokens']) > 2: continue
             sent_count += 1
-            for word in sent['tokens']:
-                word = word if word in loader.word_to_ix else '<UNK>'
-                input_label = Variable(torch.cuda.LongTensor([loader.word_to_ix[word]]))
-                class_label = Variable(torch.cuda.LongTensor([category_id-1]))
-                loss, cls_error, cls_pred = lossFun(loader, optimizer, parser,
-                    input_label, class_label)
-                _, pred = torch.max(cls_pred, 1)
-                if pred.data.cpu().numpy() == category_id - 1:
-                    avg_accuracy = avg_accuracy * 0.99 + 0.01
-                else:
-                    avg_accuracy *= 0.99
+            input_sent = [t for t in sent['tokens'] if t in loader.word_to_ix else '<UNK>']
+            input_label = [[loader.word_to_ix[word] for word in input_sent]]
+            input_label = Variable(torch.cuda.LongTensor(input_label))
+            class_label = Variable(torch.cuda.LongTensor(class_label))
+            loss, cls_error, cls_pred = lossFun(loader, optimizer, parser,
+                input_label, class_label)
+            _, pred = torch.max(cls_pred, 1)
+            if pred == class_label:
+                avg_accuracy = avg_accuracy * 0.99 + 0.01
+            else:
+                avg_accuracy *= 0.999
             if sent_count % 100 == 0:
                 print('Sentence %d: id(%d)' % (sent_count, sent_id))
                 print('  %-12s: loss = %f, cls_error = %f, avg_accuracy = %.4f, lr = %.2E' %
