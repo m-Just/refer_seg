@@ -89,7 +89,7 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
         if 'train' in setname:
             mask = im_processing.resize_and_pad(mask, input_H, input_W)
 
-        for sentence in ref['sentences']:
+        for sent_id, sentence in zip(ref['sent_ids'], ref['sentences']):
             print('saving batch %d' % (n_batch + 1))
             sent = sentence['sent']
             text = text_processing.preprocess_sentence(sent, vocab_dict, T)
@@ -98,6 +98,7 @@ def build_coco_batches(dataset, setname, T, input_H, input_W):
                 text_batch = text,
                 im_name_batch = im_name,
                 mask_batch = (mask > 0),
+                sent_id = sent_id,
                 sent_batch = [sent])
             n_batch += 1
 

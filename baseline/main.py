@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 import skimage
+import scipy.io as sio
 
 from model import Baseline_model as Model
 from pydensecrf import densecrf
@@ -135,6 +136,7 @@ def test(reader, snapshot_file, visual_feat_dir):
         text = batch['text_batch']
         im_name = str(batch['im_name_batch'])
         mask = batch['mask_batch'].astype(np.float32)
+        sent_id = batch['sent_id']
 
         visual_feat = np.load(visual_feat_dir + im_name + '.npz')['arr_0']
 
@@ -176,6 +178,8 @@ def test(reader, snapshot_file, visual_feat_dir):
                 seg_correct_dcrf[n_eval_iou] += (I/U >= eval_seg_iou_list[n_eval_iou])
 
         seg_total += 1
+
+        sio.savemat('./results/%d.mat' % sent_id, {'mask': predicts.astype(np.bool), 'iou': I / U}, do_compression=True)
 
     msg = 'cumulative IoU = %f' % (cum_I/cum_U)
     if FLAGS.dcrf:

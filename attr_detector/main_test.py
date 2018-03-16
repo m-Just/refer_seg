@@ -24,6 +24,8 @@ tf.app.flags.DEFINE_integer('batch_size', 1, None)
 tf.app.flags.DEFINE_integer('H', 384, None)
 tf.app.flags.DEFINE_integer('W', 384, None)
 tf.app.flags.DEFINE_integer('attr_num', 1024, None)
+
+tf.app.flags.DEFINE_float('pos_weight', 1.0, None)
 tf.app.flags.DEFINE_float('init_lr', 1e-4, None)
 tf.app.flags.DEFINE_float('final_lr', 1e-4, None)
 
@@ -31,18 +33,16 @@ def train():
     # load attributes name and their occurrence number
     attr_list = list()
     with open(FLAGS.attr_label % FLAGS.attr_num) as f:
-        name, occ = zip(*[line.split('\t') for line in f])
+        name, _ = zip(*[line.split('\t') for line in f])
         attr_list.extend([str(n).strip() for n in name])
-        occ = np.array(occ, dtype=np.float32)
-        attr_freq = occ / np.sum(occ)
     assert len(attr_list) == FLAGS.attr_num
     attr_ind = dict([(a, i) for i, a in enumerate(attr_list)])
     
     # load model graph
-    detector = Detector('train', FLAGS.batch_size, FLAGS.H, FLAGS.W, FLAGS.attr_num, attr_freq, FLAGS.init_lr) 
+    detector = Detector('train', FLAGS.batch_size, FLAGS.H, FLAGS.W, FLAGS.attr_num, FLAGS.pos_weight, FLAGS.init_lr) 
 
     # load training data
-    data_reader = DataReader(FLAGS.train_data_list % FLAGS.attr_num, FLAGS.im_dir, FLAGS.batch_size)
+    data_reader = DataReader(FLAGS.train_data_list % FLAGS.attr_num, FLAGS.im_dir, FLAGS.batch_size, FLAGS.attr_num)
     channel_mean = [119.41751862, 114.7717514, 105.80799103] # on VG_100K images containing top-1024 attributes
 
     # start training
@@ -107,7 +107,7 @@ def train():
                 % (iter, recl_val, recl_avg))
             print('iter = %d, t-rc (cur) = %f, t-rc (avg) = %f'
                 % (iter, top_recl_val, top_recl_avg))
-            print(logits)
+            print(logits[0])
 
 def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu

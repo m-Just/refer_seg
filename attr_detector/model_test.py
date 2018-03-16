@@ -6,7 +6,7 @@ import tensorflow as tf
 slim = tf.contrib.slim
 
 class Detector(object):
-    def __init__(self, mode, batch_size, H, W, attr_num, attr_freq, init_lr, weight_decay=1e-4):
+    def __init__(self, mode, batch_size, H, W, attr_num, pos_weight, init_lr, drop_prob=0.0, weight_decay=1e-4):
         # conv classification layer parameters
         self.d_scale = 16
         self.feat_size = (24, 24)
@@ -20,7 +20,9 @@ class Detector(object):
         self.W = W
         self.attr_num = attr_num
 
+        self.pos_weight = pos_weight
         self.init_lr = init_lr
+        self.drop_prob = drop_prob
         self.weight_decay = weight_decay
 
         # placeholders
@@ -28,7 +30,6 @@ class Detector(object):
         self.bbox = tf.placeholder(tf.float32, [self.batch_size, 4])
         self.attr = tf.placeholder(tf.float32, [self.batch_size, self.attr_num])
 
-        self.attr_freq = tf.constant(attr_freq, dtype=tf.float32)
 
         # graph building
         self.end_points = {}
@@ -61,12 +62,12 @@ class Detector(object):
         # Additional detection blocks
         net = slim.conv2d(net, 1024, [3, 3], scope='conv6')
         self.end_points['block6'] = net
-        net = tf.layers.dropout(net, rate=0.5, training=(self.mode == 'train'))
+        net = tf.layers.dropout(net, rate=self.drop_prob, training=(self.mode == 'train'))
 
         #TODO: add bounding box size and shape as additional feature
         net = slim.conv2d(net, 1024, [1, 1], scope='conv7')
         self.end_points['block7'] = net
-        net = tf.layers.dropout(net, rate=0.5, training=(self.mode == 'train'))
+        net = tf.layers.dropout(net, rate=self.drop_prob, training=(self.mode == 'train'))
 
         cls_pred = slim.conv2d(net, self.attr_num, [3, 3], activation_fn=None, scope='conv_cls')
         self.end_points['conv_cls'] = cls_pred
@@ -110,17 +111,14 @@ class Detector(object):
         self.recall = recall / tf.cast(self.batch_size, tf.float32)
         self.top_recall = top_recall / tf.cast(self.batch_size, tf.float32)
 
-        #self.cls_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.attr, logits=self.bbox_cls_pred)
-        self.cls_loss = self.weighted_cross_entropy_with_logits(self.attr,
-            self.bbox_cls_pred, self.attr_freq / 1.2)
-        self.cls_loss *= 0.1 * tf.reduce_max(self.attr_freq) / self.attr_freq
+        self.cls_loss = tf.nn.weighted_cross_entropy_with_logits(self.attr, self.bbox_cls_pred, self.pos_weight)
         self.cls_loss = tf.reduce_mean(tf.reduce_sum(self.cls_loss, axis=1))
 
         regularizer = tf.contrib.layers.l2_regularizer(self.weight_decay)
         reg_var = [var for var in tf.trainable_variables() if var.op.name.find('weights') > 0]
         self.reg_loss = tf.contrib.layers.apply_regularization(regularizer, weights_list=reg_var)
 
-        self.sum_loss = self.cls_loss + self.reg_loss
+        self.sum_loss = self.cls_loss# + self.reg_loss
 
         # Define optimization process
         #TODO: learning rate decay

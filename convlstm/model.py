@@ -26,7 +26,8 @@ class ConvLSTM_model(object):
         end_lr = 1e-5,
         lr_decay_step = 700000,
         lr_decay_rate = 1.0,
-        weight_decay = 5e-4):
+        weight_decay = 5e-4,
+        finetune_cnn=False):
 
         # Task parameters
         self.mode = mode
@@ -49,6 +50,7 @@ class ConvLSTM_model(object):
         self.lr_decay_step = lr_decay_step
         self.lr_decay_rate = lr_decay_rate
         self.weight_decay = weight_decay
+        self.finetune_cnn = finetune_cnn
 
         # Placeholders
         self.words = tf.placeholder(tf.int32, [self.batch_size, self.num_steps])
